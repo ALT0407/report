@@ -1,0 +1,42 @@
+services:
+  # ── FastAPI 백엔드 ────────────────────────────────────────
+  - type: web
+    name: report-api
+    runtime: python
+    rootDir: api
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DISCORD_CLIENT_ID
+        sync: false
+      - key: DISCORD_CLIENT_SECRET
+        sync: false
+      - key: DISCORD_BOT_TOKEN
+        sync: false
+      - key: DISCORD_GUILD_ID
+        sync: false
+      - key: DISCORD_REDIRECT_URI
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: ADMIN_USER_IDS
+        sync: false
+      - key: BOT_CALLBACK_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+
+  # ── 디코봇 (백그라운드 워커) ─────────────────────────────
+  - type: worker
+    name: report-bot
+    runtime: python
+    rootDir: bot
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot.py
+    envVars:
+      - key: DISCORD_BOT_TOKEN
+        sync: false
+      - key: DISCORD_GUILD_ID
+        sync: false
+      - key: BOT_PORT
+        value: "8001"
