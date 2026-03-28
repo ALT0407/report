@@ -136,10 +136,17 @@ async def discord_callback(code: str):
             "code": code,
             "redirect_uri": DISCORD_REDIRECT_URI,
         })
+        print(f"[DEBUG] Discord token status: {token_res.status_code}")
+        print(f"[DEBUG] Discord token body: {token_res.text[:300]}")
+        print(f"[DEBUG] CLIENT_ID={DISCORD_CLIENT_ID[:6]}... REDIRECT={DISCORD_REDIRECT_URI}")
+
+        if not token_res.text.strip():
+            raise HTTPException(status_code=500, detail="Discord 빈 응답. Client Secret 확인하세요.")
+
         token_data = token_res.json()
         access_token = token_data.get("access_token")
         if not access_token:
-            raise HTTPException(status_code=400, detail="Discord 인증 실패")
+            raise HTTPException(status_code=400, detail=f"Discord 인증 실패: {token_data}")
 
         user_res = await client.get("https://discord.com/api/users/@me",
             headers={"Authorization": f"Bearer {access_token}"})
