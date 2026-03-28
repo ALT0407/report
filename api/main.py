@@ -1,10 +1,10 @@
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 import httpx, sqlite3, json, os, secrets
 from datetime import datetime
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional
 
 app = FastAPI(title="Report System API")
 
@@ -16,15 +16,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ─── Config (환경변수로 설정) ───────────────────────────────
-DISCORD_CLIENT_ID     = os.getenv("DISCORD_CLIENT_ID", "YOUR_CLIENT_ID")
-DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET", "YOUR_CLIENT_SECRET")
+# ─── Config ───────────────────────────────────────────────
+DISCORD_CLIENT_ID     = os.getenv("DISCORD_CLIENT_ID", "")
+DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET", "")
 DISCORD_REDIRECT_URI  = os.getenv("DISCORD_REDIRECT_URI", "http://localhost:8000/auth/callback")
-DISCORD_BOT_TOKEN     = os.getenv("DISCORD_BOT_TOKEN", "YOUR_BOT_TOKEN")
-DISCORD_GUILD_ID      = os.getenv("DISCORD_GUILD_ID", "YOUR_GUILD_ID")
-ADMIN_USER_IDS        = os.getenv("ADMIN_USER_IDS", "").split(",")  # 관리자 Discord ID 목록
-SECRET_KEY            = os.getenv("SECRET_KEY", secrets.token_hex(32))
+DISCORD_BOT_TOKEN     = os.getenv("DISCORD_BOT_TOKEN", "")
+DISCORD_GUILD_ID      = os.getenv("DISCORD_GUILD_ID", "")
 BOT_CALLBACK_URL      = os.getenv("BOT_CALLBACK_URL", "http://localhost:8001/bot-action")
+# 관리자: 환경변수 (호스팅에서 설정)
+ADMIN_USER_IDS = [x.strip() for x in os.getenv("ADMIN_USER_IDS", "").split(",") if x.strip()]
 
 DB_PATH = "reports.db"
 
@@ -46,28 +46,48 @@ def init_db():
             created_at TEXT DEFAULT (datetime('now'))
         );
 
-        CREATE TABLE IF NOT EXISTS reports (
+        CREATE TABLE IF NOT EXISTS rank_list (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            discord_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            role_id TEXT,
+            order_num INTEGER DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS position_list (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            role_id TEXT,
+            order_num INTEGER DEFAULT 0
+        );
+
+        -- 보직장 테이블: discord_id <-> position_id (1:1)
+        CREATE TABLE IF NOT EXISTS commanders (
+            discord_id TEXT PRIMARY KEY,
             username TEXT NOT NULL,
-            avatar TEXT,
-            title TEXT NOT NULL,
-            fields TEXT NOT NULL,
-            status TEXT DEFAULT 'pending',
-            admin_note TEXT,
-            approved_by TEXT,
-            approved_at TEXT,
-            role_to_grant TEXT,
+            position_id INTEGER NOT NULL,
             created_at TEXT DEFAULT (datetime('now'))
         );
 
-        CREATE TABLE IF NOT EXISTS form_fields (
+        CREATE TABLE IF NOT EXISTS reports (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            label TEXT NOT NULL,
-            type TEXT NOT NULL,
-            required INTEGER DEFAULT 1,
-            options TEXT,
-            order_num INTEGER DEFAULT 0
+            report_type TEXT NOT NULL,
+            discord_id TEXT NOT NULL,
+            username TEXT NOT NULL,
+            avatar TEXT,
+            writer TEXT NOT NULL,
+            target TEXT NOT NULL,
+            reason TEXT NOT NULL,
+            before_value TEXT NOT NULL,
+            after_value TEXT NOT NULL,
+            position_id INTEGER,
+            position_name TEXT,
+            after_role_id TEXT,
+            after_role_name TEXT,
+            status TEXT DEFAULT 'pending',
+            reject_reason TEXT,
+            approved_by TEXT,
+            approved_at TEXT,
+            created_at TEXT DEFAULT (datetime('now'))
         );
 
         CREATE TABLE IF NOT EXISTS settings (
@@ -75,17 +95,23 @@ def init_db():
             value TEXT
         );
     """)
-    # 기본 설정
-    c.execute("INSERT OR IGNORE INTO settings VALUES ('role_on_approve', '')")
-    c.execute("INSERT OR IGNORE INTO settings VALUES ('dm_approve_msg', '✅ 보고서가 승인되었습니다!')")
-    c.execute("INSERT OR IGNORE INTO settings VALUES ('dm_reject_msg', '❌ 보고서가 반려되었습니다.')")
+    defaults = [
+        ("dm_approve_rank",     "계급 변동이 인가되었습니다."),
+        ("dm_reject_rank",      "계급 변동이 기각되었습니다."),
+        ("dm_approve_position", "보직 변동이 인가되었습니다."),
+        ("dm_reject_position",  "보직 변동이 기각되었습니다."),
+    ]
+    for k, v in defaults:
+        c.execute("INSERT OR IGNORE INTO settings VALUES (?,?)", (k, v))
     conn.commit()
     conn.close()
 
 init_db()
 
-# ─── 세션 헬퍼 ────────────────────────────────────────────
+# ─── 권한 헬퍼 ────────────────────────────────────────────
 def get_session(token: str):
+    if not token:
+        raise HTTPException(status_code=401, detail="인증이 필요합니다")
     conn = get_db()
     row = conn.execute("SELECT * FROM sessions WHERE token=?", (token,)).fetchone()
     conn.close()
@@ -93,15 +119,38 @@ def get_session(token: str):
         raise HTTPException(status_code=401, detail="인증이 필요합니다")
     return dict(row)
 
+def is_admin(discord_id: str) -> bool:
+    return discord_id in ADMIN_USER_IDS
+
+def get_commander_info(discord_id: str):
+    """보직장이면 {position_id, position_name} 반환, 아니면 None"""
+    conn = get_db()
+    row = conn.execute(
+        "SELECT c.discord_id, c.position_id, p.name as position_name "
+        "FROM commanders c LEFT JOIN position_list p ON c.position_id=p.id "
+        "WHERE c.discord_id=?", (discord_id,)
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
 def require_admin(token: str):
     session = get_session(token)
-    if session["discord_id"] not in ADMIN_USER_IDS:
+    if not is_admin(session["discord_id"]):
         raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다")
     return session
 
-# ─── Discord 봇 액션 호출 ─────────────────────────────────
+def require_can_review(token: str):
+    """관리자 또는 보직장이어야 함"""
+    session = get_session(token)
+    did = session["discord_id"]
+    if is_admin(did):
+        return session
+    if get_commander_info(did):
+        return session
+    raise HTTPException(status_code=403, detail="검토 권한이 없습니다")
+
+# ─── 봇 액션 ──────────────────────────────────────────────
 async def call_bot(action: str, discord_id: str, role_id: str = None, message: str = None):
-    """봇 서버에 액션 요청 (봇이 별도 프로세스로 실행 중)"""
     try:
         async with httpx.AsyncClient() as client:
             await client.post(BOT_CALLBACK_URL, json={
@@ -112,17 +161,17 @@ async def call_bot(action: str, discord_id: str, role_id: str = None, message: s
                 "message": message
             }, timeout=10)
     except Exception as e:
-        print(f"봇 액션 실패: {e}")
+        print("봇 액션 실패: " + str(e))
 
-# ─── Auth Routes ──────────────────────────────────────────
+# ─── Auth ─────────────────────────────────────────────────
 @app.get("/auth/login")
 def discord_login():
     url = (
-        f"https://discord.com/api/oauth2/authorize"
-        f"?client_id={DISCORD_CLIENT_ID}"
-        f"&redirect_uri={DISCORD_REDIRECT_URI}"
-        f"&response_type=code"
-        f"&scope=identify"
+        "https://discord.com/api/oauth2/authorize"
+        "?client_id=" + DISCORD_CLIENT_ID +
+        "&redirect_uri=" + DISCORD_REDIRECT_URI +
+        "&response_type=code"
+        "&scope=identify"
     )
     return RedirectResponse(url)
 
@@ -145,33 +194,39 @@ async def discord_callback(code: str):
             }
         )
         if token_res.status_code != 200 or not token_res.text.strip():
-            raise HTTPException(
-                status_code=400,
-                detail="OAuth failed: status=" + str(token_res.status_code) + " body=" + token_res.text[:200]
-            )
-
+            raise HTTPException(status_code=400,
+                detail="OAuth failed: status=" + str(token_res.status_code) + " body=" + token_res.text[:200])
         token_data = token_res.json()
         access_token = token_data.get("access_token")
         if not access_token:
             raise HTTPException(status_code=400, detail="No access_token: " + str(token_data))
+        user_res = await client.get("https://discord.com/api/users/@me",
+            headers={"Authorization": "Bearer " + access_token})
+        user = user_res.json()
 
     session_token = secrets.token_urlsafe(32)
     conn = get_db()
     conn.execute("INSERT OR REPLACE INTO sessions VALUES (?,?,?,?,datetime('now'))",
-        (session_token, user["id"], user["username"],
-         user.get("avatar", "")))
+        (session_token, user["id"], user["username"], user.get("avatar", "")))
     conn.commit()
     conn.close()
 
-    # 프론트로 리다이렉트 (토큰 전달)
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
-    return RedirectResponse(f"{frontend_url}?token={session_token}")
+    return RedirectResponse(frontend_url + "?token=" + session_token)
 
 @app.get("/auth/me")
 def get_me(token: str):
     session = get_session(token)
-    is_admin = session["discord_id"] in ADMIN_USER_IDS
-    return {**session, "is_admin": is_admin}
+    did = session["discord_id"]
+    admin = is_admin(did)
+    cmd = get_commander_info(did)
+    return {
+        **session,
+        "is_admin": admin,
+        "is_commander": cmd is not None,
+        "commander_position_id": cmd["position_id"] if cmd else None,
+        "commander_position_name": cmd["position_name"] if cmd else None,
+    }
 
 @app.post("/auth/logout")
 def logout(token: str):
@@ -181,162 +236,300 @@ def logout(token: str):
     conn.close()
     return {"ok": True}
 
-# ─── Form Fields (관리자 커스텀) ──────────────────────────
-@app.get("/fields")
-def get_fields():
+# ─── 계급 목록 ────────────────────────────────────────────
+class ListItem(BaseModel):
+    name: str
+    role_id: Optional[str] = None
+    order_num: int = 0
+
+@app.get("/ranks")
+def get_ranks():
     conn = get_db()
-    rows = conn.execute("SELECT * FROM form_fields ORDER BY order_num").fetchall()
+    rows = conn.execute("SELECT * FROM rank_list ORDER BY order_num").fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
-class FieldCreate(BaseModel):
-    label: str
-    type: str  # text, textarea, select, number, date
-    required: bool = True
-    options: Optional[str] = None  # select일 때 쉼표 구분
-    order_num: int = 0
-
-@app.post("/fields")
-def add_field(field: FieldCreate, token: str):
+@app.post("/ranks")
+def add_rank(item: ListItem, token: str):
     require_admin(token)
     conn = get_db()
-    conn.execute("INSERT INTO form_fields (label,type,required,options,order_num) VALUES (?,?,?,?,?)",
-        (field.label, field.type, int(field.required), field.options, field.order_num))
+    conn.execute("INSERT INTO rank_list (name,role_id,order_num) VALUES (?,?,?)",
+        (item.name, item.role_id, item.order_num))
     conn.commit()
     conn.close()
     return {"ok": True}
 
-@app.delete("/fields/{field_id}")
-def delete_field(field_id: int, token: str):
+@app.delete("/ranks/{rid}")
+def delete_rank(rid: int, token: str):
     require_admin(token)
     conn = get_db()
-    conn.execute("DELETE FROM form_fields WHERE id=?", (field_id,))
+    conn.execute("DELETE FROM rank_list WHERE id=?", (rid,))
     conn.commit()
     conn.close()
     return {"ok": True}
 
-@app.put("/fields/reorder")
-def reorder_fields(orders: List[dict], token: str):
+# ─── 보직 목록 ────────────────────────────────────────────
+@app.get("/positions")
+def get_positions():
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM position_list ORDER BY order_num").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+@app.post("/positions")
+def add_position(item: ListItem, token: str):
     require_admin(token)
     conn = get_db()
-    for item in orders:
-        conn.execute("UPDATE form_fields SET order_num=? WHERE id=?",
-            (item["order_num"], item["id"]))
+    conn.execute("INSERT INTO position_list (name,role_id,order_num) VALUES (?,?,?)",
+        (item.name, item.role_id, item.order_num))
     conn.commit()
     conn.close()
     return {"ok": True}
 
-# ─── Reports ─────────────────────────────────────────────
+@app.delete("/positions/{pid}")
+def delete_position(pid: int, token: str):
+    require_admin(token)
+    conn = get_db()
+    conn.execute("DELETE FROM position_list WHERE id=?", (pid,))
+    conn.commit()
+    conn.close()
+    return {"ok": True}
+
+# ─── 보직장 관리 (관리자만) ───────────────────────────────
+@app.get("/commanders")
+def get_commanders(token: str):
+    require_admin(token)
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT c.discord_id, c.username, c.position_id, p.name as position_name, c.created_at "
+        "FROM commanders c LEFT JOIN position_list p ON c.position_id=p.id "
+        "ORDER BY c.created_at DESC"
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+class CommanderCreate(BaseModel):
+    discord_id: str
+    username: str
+    position_id: int
+
+@app.post("/commanders")
+def add_commander(body: CommanderCreate, token: str):
+    require_admin(token)
+    conn = get_db()
+    # 해당 보직에 이미 보직장이 있는지 확인
+    existing = conn.execute(
+        "SELECT discord_id FROM commanders WHERE position_id=?", (body.position_id,)
+    ).fetchone()
+    if existing:
+        conn.close()
+        raise HTTPException(status_code=400, detail="해당 보직에 이미 보직장이 등록되어 있습니다")
+    conn.execute(
+        "INSERT OR REPLACE INTO commanders (discord_id, username, position_id) VALUES (?,?,?)",
+        (body.discord_id, body.username, body.position_id)
+    )
+    conn.commit()
+    conn.close()
+    return {"ok": True}
+
+@app.delete("/commanders/{discord_id}")
+def delete_commander(discord_id: str, token: str):
+    require_admin(token)
+    conn = get_db()
+    conn.execute("DELETE FROM commanders WHERE discord_id=?", (discord_id,))
+    conn.commit()
+    conn.close()
+    return {"ok": True}
+
+# ─── 보고서 ───────────────────────────────────────────────
 class ReportCreate(BaseModel):
-    title: str
-    fields: dict  # { label: value }
+    report_type: str
+    writer: str
+    target: str
+    reason: str
+    before_value: str
+    after_value: str
+    position_id: Optional[int] = None
+    position_name: Optional[str] = None
+    after_role_id: Optional[str] = None
+    after_role_name: Optional[str] = None
 
 @app.post("/reports")
 def submit_report(report: ReportCreate, token: str):
     session = get_session(token)
     conn = get_db()
-    conn.execute(
-        "INSERT INTO reports (discord_id,username,avatar,title,fields) VALUES (?,?,?,?,?)",
-        (session["discord_id"], session["username"], session["avatar"],
-         report.title, json.dumps(report.fields, ensure_ascii=False))
-    )
+    conn.execute("""INSERT INTO reports
+        (report_type,discord_id,username,avatar,writer,target,reason,
+         before_value,after_value,position_id,position_name,after_role_id,after_role_name)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (report.report_type, session["discord_id"], session["username"], session["avatar"],
+         report.writer, report.target, report.reason,
+         report.before_value, report.after_value,
+         report.position_id, report.position_name,
+         report.after_role_id, report.after_role_name))
     conn.commit()
     conn.close()
-    return {"ok": True, "message": "보고서가 제출되었습니다"}
+    return {"ok": True}
 
 @app.get("/reports")
-def get_reports(token: str, status: str = None):
+def get_reports(token: str, status: str = None, report_type: str = None):
     session = get_session(token)
-    is_admin = session["discord_id"] in ADMIN_USER_IDS
-    conn = get_db()
+    did = session["discord_id"]
+    admin = is_admin(did)
+    cmd = get_commander_info(did)
 
-    if is_admin:
+    if not admin and not cmd:
+        # 일반 유저: 본인 보고서만
+        conn = get_db()
+        query = "SELECT * FROM reports WHERE discord_id=?"
+        params = [did]
         if status:
-            rows = conn.execute("SELECT * FROM reports WHERE status=? ORDER BY created_at DESC", (status,)).fetchall()
-        else:
-            rows = conn.execute("SELECT * FROM reports ORDER BY created_at DESC").fetchall()
-    else:
-        rows = conn.execute("SELECT * FROM reports WHERE discord_id=? ORDER BY created_at DESC",
-            (session["discord_id"],)).fetchall()
+            query += " AND status=?"
+            params.append(status)
+        query += " ORDER BY created_at DESC"
+        rows = conn.execute(query, params).fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
 
+    conn = get_db()
+    if admin:
+        # 관리자: 전체
+        query = "SELECT * FROM reports WHERE 1=1"
+        params = []
+    else:
+        # 보직장: 자기 담당 보직 보고서만
+        query = "SELECT * FROM reports WHERE position_id=?"
+        params = [cmd["position_id"]]
+
+    if status:
+        query += " AND status=?"
+        params.append(status)
+    if report_type:
+        query += " AND report_type=?"
+        params.append(report_type)
+    query += " ORDER BY created_at DESC"
+    rows = conn.execute(query, params).fetchall()
     conn.close()
-    result = []
-    for r in rows:
-        d = dict(r)
-        d["fields"] = json.loads(d["fields"])
-        result.append(d)
-    return result
+    return [dict(r) for r in rows]
 
 @app.get("/reports/{report_id}")
 def get_report(report_id: int, token: str):
     session = get_session(token)
-    is_admin = session["discord_id"] in ADMIN_USER_IDS
+    did = session["discord_id"]
     conn = get_db()
     row = conn.execute("SELECT * FROM reports WHERE id=?", (report_id,)).fetchone()
     conn.close()
     if not row:
-        raise HTTPException(status_code=404, detail="보고서를 찾을 수 없습니다")
+        raise HTTPException(status_code=404)
     d = dict(row)
-    if not is_admin and d["discord_id"] != session["discord_id"]:
-        raise HTTPException(status_code=403, detail="접근 권한이 없습니다")
-    d["fields"] = json.loads(d["fields"])
+    cmd = get_commander_info(did)
+    # 접근 권한: 관리자 or 담당 보직장 or 본인
+    if not is_admin(did):
+        if cmd:
+            if d["position_id"] != cmd["position_id"]:
+                raise HTTPException(status_code=403, detail="담당 보직 보고서가 아닙니다")
+        elif d["discord_id"] != did:
+            raise HTTPException(status_code=403)
     return d
 
-class ApproveRequest(BaseModel):
-    admin_note: Optional[str] = ""
-    role_id: Optional[str] = ""
+class RejectBody(BaseModel):
+    reject_reason: Optional[str] = ""
 
 @app.post("/reports/{report_id}/approve")
-async def approve_report(report_id: int, body: ApproveRequest, token: str):
-    admin = require_admin(token)
+async def approve_report(report_id: int, token: str):
+    session = require_can_review(token)
+    did = session["discord_id"]
+    cmd = get_commander_info(did)
+
     conn = get_db()
     row = conn.execute("SELECT * FROM reports WHERE id=?", (report_id,)).fetchone()
     if not row:
         conn.close()
         raise HTTPException(status_code=404)
+    r = dict(row)
 
-    conn.execute("""UPDATE reports SET status='approved', admin_note=?,
-        approved_by=?, approved_at=datetime('now'), role_to_grant=? WHERE id=?""",
-        (body.admin_note, admin["username"], body.role_id, report_id))
+    # 보직장이면 담당 보직 보고서만 처리 가능
+    if cmd and r["position_id"] != cmd["position_id"]:
+        conn.close()
+        raise HTTPException(status_code=403, detail="담당 보직 보고서가 아닙니다")
+    if r["status"] != "pending":
+        conn.close()
+        raise HTTPException(status_code=400, detail="이미 처리된 보고서입니다")
+
+    conn.execute(
+        "UPDATE reports SET status='approved', approved_by=?, approved_at=datetime('now') WHERE id=?",
+        (session["username"], report_id))
     conn.commit()
 
-    # 설정에서 DM 메시지 가져오기
-    dm_msg = conn.execute("SELECT value FROM settings WHERE key='dm_approve_msg'").fetchone()
-    dm_msg = dm_msg["value"] if dm_msg else "✅ 보고서가 승인되었습니다!"
+    type_name = "계급 변동" if r["report_type"] == "rank" else "보직 변동"
+    dm_key = "dm_approve_rank" if r["report_type"] == "rank" else "dm_approve_position"
+    s = conn.execute("SELECT value FROM settings WHERE key=?", (dm_key,)).fetchone()
+    dm_base = s["value"] if s else "인가되었습니다."
     conn.close()
 
-    # 봇에게 액션 요청
-    discord_id = dict(row)["discord_id"]
-    await call_bot("approve", discord_id, role_id=body.role_id,
-        message=f"{dm_msg}\n\n📋 보고서: **{dict(row)['title']}**\n💬 관리자 메모: {body.admin_note or '없음'}")
+    role_line = ("\n부여 역할: " + r["after_role_name"]) if r["after_role_name"] else ""
+    pos_line = ("\n소속 보직: " + r["position_name"]) if r["position_name"] else ""
 
+    dm_msg = (
+        dm_base + "\n\n"
+        "[ " + type_name + " 보고서 처리 결과 ]\n"
+        "작성자: " + r["writer"] + "\n"
+        "대상자: " + r["target"] + "\n"
+        "변동: " + r["before_value"] + " → " + r["after_value"] +
+        pos_line + role_line + "\n"
+        "결과: 인가\n"
+        "처리자: " + session["username"]
+    )
+    await call_bot("approve", r["discord_id"], role_id=r["after_role_id"], message=dm_msg)
     return {"ok": True}
 
 @app.post("/reports/{report_id}/reject")
-async def reject_report(report_id: int, body: ApproveRequest, token: str):
-    admin = require_admin(token)
+async def reject_report(report_id: int, body: RejectBody, token: str):
+    session = require_can_review(token)
+    did = session["discord_id"]
+    cmd = get_commander_info(did)
+
     conn = get_db()
     row = conn.execute("SELECT * FROM reports WHERE id=?", (report_id,)).fetchone()
     if not row:
         conn.close()
         raise HTTPException(status_code=404)
+    r = dict(row)
 
-    conn.execute("""UPDATE reports SET status='rejected', admin_note=?,
-        approved_by=?, approved_at=datetime('now') WHERE id=?""",
-        (body.admin_note, admin["username"], report_id))
+    if cmd and r["position_id"] != cmd["position_id"]:
+        conn.close()
+        raise HTTPException(status_code=403, detail="담당 보직 보고서가 아닙니다")
+    if r["status"] != "pending":
+        conn.close()
+        raise HTTPException(status_code=400, detail="이미 처리된 보고서입니다")
+
+    conn.execute(
+        "UPDATE reports SET status='rejected', reject_reason=?, approved_by=?, approved_at=datetime('now') WHERE id=?",
+        (body.reject_reason, session["username"], report_id))
     conn.commit()
 
-    dm_msg = conn.execute("SELECT value FROM settings WHERE key='dm_reject_msg'").fetchone()
-    dm_msg = dm_msg["value"] if dm_msg else "❌ 보고서가 반려되었습니다."
+    type_name = "계급 변동" if r["report_type"] == "rank" else "보직 변동"
+    dm_key = "dm_reject_rank" if r["report_type"] == "rank" else "dm_reject_position"
+    s = conn.execute("SELECT value FROM settings WHERE key=?", (dm_key,)).fetchone()
+    dm_base = s["value"] if s else "기각되었습니다."
+    pos_line = ("\n소속 보직: " + r["position_name"]) if r["position_name"] else ""
     conn.close()
 
-    discord_id = dict(row)["discord_id"]
-    await call_bot("reject", discord_id,
-        message=f"{dm_msg}\n\n📋 보고서: **{dict(row)['title']}**\n💬 반려 사유: {body.admin_note or '없음'}")
-
+    dm_msg = (
+        dm_base + "\n\n"
+        "[ " + type_name + " 보고서 처리 결과 ]\n"
+        "작성자: " + r["writer"] + "\n"
+        "대상자: " + r["target"] + "\n"
+        "변동: " + r["before_value"] + " → " + r["after_value"] +
+        pos_line + "\n"
+        "결과: 기각\n"
+        "기각 사유: " + (body.reject_reason or "없음") + "\n"
+        "처리자: " + session["username"]
+    )
+    await call_bot("reject", r["discord_id"], message=dm_msg)
     return {"ok": True}
 
-# ─── Settings ─────────────────────────────────────────────
+# ─── 설정 ─────────────────────────────────────────────────
 @app.get("/settings")
 def get_settings(token: str):
     require_admin(token)
