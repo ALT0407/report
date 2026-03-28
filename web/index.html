@@ -2,352 +2,159 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>보고서 관리 시스템</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>변동 보고서 시스템</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg:       #0b0f1a;
-  --surface:  #111827;
-  --border:   #1e2d45;
-  --border2:  #2a3f5f;
-  --gold:     #c9a84c;
-  --gold2:    #e8c96a;
-  --blue:     #2563eb;
-  --blue-dim: #1e3a5f;
-  --green:    #10b981;
-  --red:      #ef4444;
-  --text:     #e2e8f0;
-  --muted:    #64748b;
-  --pending:  #f59e0b;
+:root{
+  --bg:#0b0f1a;--surface:#111827;--border:#1e2d45;--border2:#2a3f5f;
+  --gold:#c9a84c;--gold2:#e8c96a;--green:#10b981;--red:#ef4444;
+  --orange:#f59e0b;--purple:#7c3aed;--text:#e2e8f0;--muted:#64748b;
 }
-* { margin:0; padding:0; box-sizing:border-box; }
-html { scroll-behavior:smooth; }
-body {
-  font-family: 'Noto Sans KR', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  line-height: 1.6;
-}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
 
-/* ── 스크롤바 ── */
-::-webkit-scrollbar { width:6px; }
-::-webkit-scrollbar-track { background:var(--bg); }
-::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+header{position:sticky;top:0;z-index:100;background:rgba(11,15,26,.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 16px;height:56px;display:flex;align-items:center;justify-content:space-between;}
+.logo{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700;color:var(--gold);}
+.logo-icon{width:30px;height:30px;background:linear-gradient(135deg,var(--gold),var(--gold2));border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#0b0f1a;}
+.header-right{display:flex;align-items:center;gap:8px;}
+.user-chip{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:3px 10px 3px 4px;font-size:12px;}
+.avatar{width:24px;height:24px;border-radius:50%;background:var(--border2);}
+.badge{font-size:9px;font-weight:700;letter-spacing:.08em;padding:2px 6px;border-radius:3px;text-transform:uppercase;}
+.badge-admin{background:var(--gold);color:#0b0f1a;}
+.badge-commander{background:var(--purple);color:#fff;}
+.badge-user{background:#1e3a5f;color:#93c5fd;}
 
-/* ── 상단바 ── */
-header {
-  position:sticky; top:0; z-index:100;
-  background: rgba(11,15,26,0.95);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border);
-  padding: 0 24px;
-  height: 60px;
-  display: flex; align-items:center; justify-content:space-between;
-}
-.logo {
-  display:flex; align-items:center; gap:12px;
-  font-size:15px; font-weight:700; letter-spacing:.05em;
-  color: var(--gold);
-}
-.logo-icon {
-  width:32px; height:32px;
-  background: linear-gradient(135deg, var(--gold), var(--gold2));
-  border-radius:6px;
-  display:flex; align-items:center; justify-content:center;
-  font-size:16px; color:#0b0f1a;
-}
-.header-right { display:flex; align-items:center; gap:12px; }
-.user-chip {
-  display:flex; align-items:center; gap:8px;
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:20px;
-  padding:4px 12px 4px 6px;
-  font-size:13px;
-}
-.avatar {
-  width:26px; height:26px; border-radius:50%;
-  background:var(--border2);
-}
-.badge {
-  font-size:10px; font-weight:700; letter-spacing:.08em;
-  padding:2px 7px; border-radius:3px; text-transform:uppercase;
-}
-.badge-admin { background:var(--gold); color:#0b0f1a; }
-.badge-user  { background:var(--blue-dim); color:#93c5fd; }
+main{max-width:720px;margin:0 auto;padding:20px 16px;}
 
-/* ── 레이아웃 ── */
-main { max-width:1100px; margin:0 auto; padding:32px 24px; }
+.tabs{display:flex;overflow-x:auto;border-bottom:2px solid var(--border);margin-bottom:24px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{padding:10px 16px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .2s;flex-shrink:0;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold);}
 
-/* ── 탭 ── */
-.tabs {
-  display:flex; gap:0;
-  border-bottom: 2px solid var(--border);
-  margin-bottom:32px;
-}
-.tab {
-  padding:12px 24px;
-  font-size:14px; font-weight:500;
-  color:var(--muted);
-  cursor:pointer;
-  border-bottom:2px solid transparent;
-  margin-bottom:-2px;
-  transition:all .2s;
-  white-space:nowrap;
-}
-.tab:hover { color:var(--text); }
-.tab.active { color:var(--gold); border-bottom-color:var(--gold); }
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:12px;}
+.card-title{font-size:15px;font-weight:700;margin-bottom:4px;}
+.card-sub{font-size:12px;color:var(--muted);}
 
-/* ── 카드 ── */
-.card {
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:8px;
-  padding:24px;
-  margin-bottom:16px;
-}
-.card-header {
-  display:flex; align-items:center; justify-content:space-between;
-  margin-bottom:16px;
-}
-.card-title { font-size:16px; font-weight:700; }
-.card-sub { font-size:12px; color:var(--muted); margin-top:2px; }
+.form-group{margin-bottom:16px;}
+label{display:block;font-size:12px;font-weight:500;color:#94a3b8;margin-bottom:5px;}
+.required::after{content:" *";color:var(--red);}
+input[type=text],textarea,select{width:100%;background:#0d1525;border:1px solid var(--border2);border-radius:6px;padding:9px 12px;color:var(--text);font-family:inherit;font-size:14px;transition:border-color .2s;outline:none;}
+input:focus,textarea:focus,select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,.1);}
+textarea{resize:vertical;min-height:80px;}
+select option{background:var(--surface);}
+input[readonly]{color:var(--muted);cursor:not-allowed;}
 
-/* ── 폼 ── */
-.form-group { margin-bottom:18px; }
-label { display:block; font-size:13px; font-weight:500; color:#94a3b8; margin-bottom:6px; }
-.required::after { content:" *"; color:var(--red); }
-input[type=text], input[type=number], input[type=date],
-textarea, select {
-  width:100%;
-  background: #0d1525;
-  border: 1px solid var(--border2);
-  border-radius:6px;
-  padding: 10px 14px;
-  color:var(--text);
-  font-family:inherit; font-size:14px;
-  transition: border-color .2s;
-  outline:none;
-}
-input:focus, textarea:focus, select:focus {
-  border-color: var(--gold);
-  box-shadow: 0 0 0 3px rgba(201,168,76,.1);
-}
-textarea { resize:vertical; min-height:100px; }
-select option { background: var(--surface); }
+.arrow-row{display:grid;grid-template-columns:1fr 28px 1fr;align-items:end;gap:8px;}
+.arrow-mid{color:var(--gold);font-size:20px;font-weight:700;text-align:center;padding-bottom:10px;}
 
-/* ── 버튼 ── */
-.btn {
-  display:inline-flex; align-items:center; gap:6px;
-  padding:9px 18px;
-  font-size:13px; font-weight:600;
-  border:none; border-radius:6px;
-  cursor:pointer; transition:all .2s;
-  font-family:inherit;
-}
-.btn-primary { background:var(--gold); color:#0b0f1a; }
-.btn-primary:hover { background:var(--gold2); transform:translateY(-1px); }
-.btn-ghost {
-  background:transparent;
-  border:1px solid var(--border2);
-  color:var(--text);
-}
-.btn-ghost:hover { border-color:var(--gold); color:var(--gold); }
-.btn-green { background:var(--green); color:#fff; }
-.btn-green:hover { filter:brightness(1.1); }
-.btn-red { background:var(--red); color:#fff; }
-.btn-red:hover { filter:brightness(1.1); }
-.btn-sm { padding:5px 12px; font-size:12px; }
-.btn:disabled { opacity:.4; cursor:not-allowed; transform:none !important; }
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;font-size:13px;font-weight:600;border:none;border-radius:6px;cursor:pointer;transition:all .2s;font-family:inherit;white-space:nowrap;}
+.btn-primary{background:var(--gold);color:#0b0f1a;}
+.btn-primary:hover{background:var(--gold2);}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--text);}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold);}
+.btn-green{background:var(--green);color:#fff;}
+.btn-red{background:var(--red);color:#fff;}
+.btn-sm{padding:5px 11px;font-size:12px;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn-full{width:100%;justify-content:center;}
 
-/* ── 상태 배지 ── */
-.status {
-  display:inline-block;
-  font-size:11px; font-weight:700;
-  padding:3px 10px; border-radius:12px;
-  letter-spacing:.06em; text-transform:uppercase;
-}
-.status-pending  { background:rgba(245,158,11,.15); color:var(--pending); border:1px solid rgba(245,158,11,.3); }
-.status-approved { background:rgba(16,185,129,.15); color:var(--green);   border:1px solid rgba(16,185,129,.3); }
-.status-rejected { background:rgba(239,68,68,.15);  color:var(--red);     border:1px solid rgba(239,68,68,.3); }
+.status{display:inline-block;font-size:10px;font-weight:700;padding:3px 9px;border-radius:10px;letter-spacing:.06em;text-transform:uppercase;}
+.status-pending{background:rgba(245,158,11,.15);color:var(--orange);border:1px solid rgba(245,158,11,.3);}
+.status-approved{background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3);}
+.status-rejected{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);}
 
-/* ── 보고서 목록 아이템 ── */
-.report-item {
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:8px;
-  padding:16px 20px;
-  margin-bottom:10px;
-  cursor:pointer;
-  transition:all .2s;
-  display:flex; align-items:center; justify-content:space-between; gap:12px;
-}
-.report-item:hover { border-color:var(--border2); background:#151f32; }
-.report-meta { font-size:12px; color:var(--muted); margin-top:4px; display:flex; gap:16px; flex-wrap:wrap; }
-.report-meta span { display:flex; align-items:center; gap:4px; }
+.type-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+.type-card{background:var(--surface);border:2px solid var(--border);border-radius:8px;padding:16px;text-align:center;cursor:pointer;transition:all .2s;}
+.type-card:hover{border-color:var(--border2);}
+.type-card.selected{border-color:var(--gold);background:rgba(201,168,76,.06);}
+.type-icon{font-size:24px;margin-bottom:8px;}
+.type-name{font-size:13px;font-weight:700;}
+.type-desc{font-size:11px;color:var(--muted);margin-top:3px;}
 
-/* ── 모달 ── */
-.modal-backdrop {
-  position:fixed; inset:0;
-  background:rgba(0,0,0,.7);
-  backdrop-filter:blur(4px);
-  z-index:200;
-  display:flex; align-items:center; justify-content:center;
-  padding:20px;
-  animation: fadeIn .15s ease;
-}
-@keyframes fadeIn { from{opacity:0} to{opacity:1} }
-.modal {
-  background:var(--surface);
-  border:1px solid var(--border2);
-  border-radius:12px;
-  width:100%; max-width:620px;
-  max-height:90vh; overflow-y:auto;
-  animation: slideUp .2s ease;
-}
-@keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
-.modal-header {
-  padding:20px 24px 16px;
-  border-bottom:1px solid var(--border);
-  display:flex; align-items:center; justify-content:space-between;
-  position:sticky; top:0; background:var(--surface); z-index:1;
-}
-.modal-body { padding:24px; }
-.modal-footer {
-  padding:16px 24px;
-  border-top:1px solid var(--border);
-  display:flex; gap:10px; justify-content:flex-end;
-}
-.close-btn {
-  background:none; border:none; color:var(--muted);
-  font-size:20px; cursor:pointer; padding:4px 8px;
-  border-radius:4px; transition:color .2s;
-}
-.close-btn:hover { color:var(--text); }
+.report-item{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.report-item:hover{border-color:var(--border2);background:#151f32;}
+.report-info{flex:1;min-width:0;}
+.report-title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.report-meta{font-size:11px;color:var(--muted);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap;}
+.type-tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.tag-rank{background:rgba(37,99,235,.2);color:#93c5fd;}
+.tag-position{background:rgba(124,58,237,.2);color:#c4b5fd;}
 
-/* ── 필드 빌더 ── */
-.field-row {
-  display:flex; align-items:center; gap:10px;
-  padding:12px 14px;
-  background:#0d1525;
-  border:1px solid var(--border);
-  border-radius:6px;
-  margin-bottom:8px;
-}
-.field-row .field-label { flex:1; font-size:13px; }
-.field-row .field-type { font-size:11px; color:var(--muted); font-family:'JetBrains Mono',monospace; }
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:flex-end;animation:fadeIn .15s ease;}
+@media(min-width:600px){.modal-backdrop{align-items:center;padding:20px;}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:var(--surface);border:1px solid var(--border2);width:100%;max-height:92vh;overflow-y:auto;border-radius:16px 16px 0 0;animation:slideUp .25s ease;}
+@media(min-width:600px){.modal{border-radius:12px;max-width:560px;}}
+@keyframes slideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto 0;}
+@media(min-width:600px){.modal-handle{display:none;}}
+.modal-header{padding:16px 20px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface);z-index:1;}
+.modal-body{padding:20px;}
+.modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
+.close-btn{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px 8px;border-radius:4px;}
 
-/* ── 로그인 화면 ── */
-#login-screen {
-  min-height:100vh;
-  display:flex; align-items:center; justify-content:center;
-  background: radial-gradient(ellipse at 30% 50%, rgba(37,99,235,.08) 0%, transparent 60%),
-              radial-gradient(ellipse at 70% 20%, rgba(201,168,76,.05) 0%, transparent 50%),
-              var(--bg);
-}
-.login-box {
-  text-align:center;
-  padding:48px;
-  max-width:420px;
-}
-.login-logo {
-  width:72px; height:72px;
-  background:linear-gradient(135deg,var(--gold),var(--gold2));
-  border-radius:16px;
-  display:flex; align-items:center; justify-content:center;
-  font-size:32px; margin:0 auto 24px; color:#0b0f1a;
-}
-.login-title { font-size:26px; font-weight:700; margin-bottom:8px; }
-.login-sub { font-size:14px; color:var(--muted); margin-bottom:32px; line-height:1.7; }
-.discord-btn {
-  display:inline-flex; align-items:center; gap:10px;
-  background:#5865F2; color:#fff;
-  padding:13px 28px; border-radius:8px;
-  font-size:15px; font-weight:600;
-  text-decoration:none;
-  transition:all .2s;
-  border:none; cursor:pointer; font-family:inherit;
-}
-.discord-btn:hover { background:#4752c4; transform:translateY(-2px); box-shadow:0 8px 24px rgba(88,101,242,.3); }
-.discord-btn svg { width:22px; height:22px; }
+.detail-row{margin-bottom:12px;}
+.detail-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;}
+.detail-value{font-size:14px;padding:8px 12px;background:#0d1525;border-radius:6px;border:1px solid var(--border);}
+.arrow-display{display:flex;align-items:center;gap:8px;}
+.arrow-display .detail-value{flex:1;}
+.arrow-display .arr{color:var(--gold);font-weight:700;font-size:16px;flex-shrink:0;}
 
-/* ── 통계 ── */
-.stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:24px; }
-.stat-card {
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:8px;
-  padding:16px;
-  text-align:center;
-}
-.stat-num { font-size:28px; font-weight:700; font-family:'JetBrains Mono',monospace; }
-.stat-label { font-size:12px; color:var(--muted); margin-top:4px; }
+.list-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#0d1525;border:1px solid var(--border);border-radius:6px;margin-bottom:6px;}
+.list-item-name{flex:1;font-size:13px;font-weight:500;}
+.list-item-sub{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;}
 
-/* ── 알림 ── */
-.toast {
-  position:fixed; bottom:24px; right:24px;
-  background:var(--surface);
-  border:1px solid var(--border2);
-  border-radius:8px;
-  padding:12px 18px;
-  font-size:13px;
-  z-index:9999;
-  animation: toastIn .3s ease;
-  max-width:300px;
-}
-@keyframes toastIn { from{transform:translateY(10px);opacity:0} to{transform:translateY(0);opacity:1} }
-.toast.success { border-left:3px solid var(--green); }
-.toast.error   { border-left:3px solid var(--red); }
-.toast.info    { border-left:3px solid var(--gold); }
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;}
+.stat-num{font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.stat-label{font-size:11px;color:var(--muted);margin-top:2px;}
 
-/* ── 빈 상태 ── */
-.empty {
-  text-align:center; padding:60px 20px;
-  color:var(--muted);
-}
-.empty-icon { font-size:48px; margin-bottom:12px; }
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:11px 20px;font-size:13px;z-index:9999;white-space:nowrap;animation:toastIn .3s ease;max-width:90vw;text-align:center;}
+@keyframes toastIn{from{transform:translateX(-50%) translateY(10px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+.toast.success{border-left:3px solid var(--green);}
+.toast.error{border-left:3px solid var(--red);}
+.toast.info{border-left:3px solid var(--gold);}
+.empty{text-align:center;padding:40px 20px;color:var(--muted);}
+.empty-icon{font-size:36px;margin-bottom:8px;}
+hr{border:none;border-top:1px solid var(--border);margin:16px 0;}
 
-/* ── 구분선 ── */
-hr { border:none; border-top:1px solid var(--border); margin:20px 0; }
+/* 로그인 */
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 30% 50%,rgba(37,99,235,.08) 0%,transparent 60%),var(--bg);}
+.login-box{text-align:center;padding:40px 24px;max-width:360px;}
+.login-logo{width:64px;height:64px;background:linear-gradient(135deg,var(--gold),var(--gold2));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 20px;color:#0b0f1a;}
+.login-title{font-size:22px;font-weight:700;margin-bottom:8px;}
+.login-sub{font-size:13px;color:var(--muted);margin-bottom:28px;line-height:1.7;}
+.discord-btn{display:inline-flex;align-items:center;gap:10px;background:#5865F2;color:#fff;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;border:none;cursor:pointer;font-family:inherit;transition:all .2s;}
+.discord-btn:hover{background:#4752c4;transform:translateY(-2px);}
+.discord-btn svg{width:20px;height:20px;}
 
-/* ── 반응형 ── */
-@media(max-width:600px) {
-  .tabs { overflow-x:auto; }
-  .stats-grid { grid-template-columns:1fr 1fr; }
-  .report-item { flex-direction:column; align-items:flex-start; }
-}
+/* 보직장 배지 */
+.cmd-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);color:#c4b5fd;font-size:11px;padding:3px 10px;border-radius:12px;margin-bottom:16px;}
 </style>
 </head>
 <body>
 
-<!-- ── 로그인 화면 ── -->
 <div id="login-screen">
   <div class="login-box">
     <div class="login-logo">📋</div>
-    <h1 class="login-title">보고서 관리 시스템</h1>
-    <p class="login-sub">Discord 계정으로 로그인하여<br>보고서를 제출하고 관리하세요</p>
+    <h1 class="login-title">변동 보고서 시스템</h1>
+    <p class="login-sub">Discord 계정으로 로그인하여<br>계급·보직 변동 보고서를 제출하세요</p>
     <button class="discord-btn" onclick="loginWithDiscord()">
-      <svg viewBox="0 0 71 55" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M60.1 4.9A58.5 58.5 0 0 0 45.4.9a.2.2 0 0 0-.2.1c-.6 1.1-1.3 2.6-1.8 3.7a54 54 0 0 0-16.2 0c-.5-1.1-1.2-2.6-1.8-3.7a.2.2 0 0 0-.2-.1A58.3 58.3 0 0 0 10.4 4.9a.2.2 0 0 0-.1.1C1.5 18.2-0.9 31.1.3 43.8a.2.2 0 0 0 .1.2 58.8 58.8 0 0 0 17.7 9 .2.2 0 0 0 .2-.1c1.4-1.9 2.6-3.9 3.6-5.9a.2.2 0 0 0-.1-.3 38.7 38.7 0 0 1-5.5-2.6.2.2 0 0 1 0-.4l1.1-.8a.2.2 0 0 1 .2 0c11.5 5.3 24 5.3 35.4 0a.2.2 0 0 1 .2 0l1.1.8a.2.2 0 0 1 0 .4 36 36 0 0 1-5.5 2.6.2.2 0 0 0-.1.3 45 45 0 0 0 3.6 5.9.2.2 0 0 0 .2.1 58.6 58.6 0 0 0 17.8-9 .2.2 0 0 0 .1-.2c1.5-15.3-2.5-28.1-10.6-39.8a.2.2 0 0 0-.1-.1zM23.7 36c-3.5 0-6.4-3.2-6.4-7.1 0-4 2.8-7.1 6.4-7.1 3.6 0 6.5 3.2 6.4 7.1 0 3.9-2.8 7.1-6.4 7.1zm23.6 0c-3.5 0-6.4-3.2-6.4-7.1 0-4 2.8-7.1 6.4-7.1 3.6 0 6.5 3.2 6.4 7.1 0 3.9-2.8 7.1-6.4 7.1z" fill="#fff"/>
-      </svg>
+      <svg viewBox="0 0 71 55" fill="none"><path d="M60.1 4.9A58.5 58.5 0 0 0 45.4.9a.2.2 0 0 0-.2.1c-.6 1.1-1.3 2.6-1.8 3.7a54 54 0 0 0-16.2 0c-.5-1.1-1.2-2.6-1.8-3.7a.2.2 0 0 0-.2-.1A58.3 58.3 0 0 0 10.4 4.9a.2.2 0 0 0-.1.1C1.5 18.2-.9 31.1.3 43.8a.2.2 0 0 0 .1.2 58.8 58.8 0 0 0 17.7 9 .2.2 0 0 0 .2-.1c1.4-1.9 2.6-3.9 3.6-5.9a.2.2 0 0 0-.1-.3 38.7 38.7 0 0 1-5.5-2.6.2.2 0 0 1 0-.4l1.1-.8a.2.2 0 0 1 .2 0c11.5 5.3 24 5.3 35.4 0a.2.2 0 0 1 .2 0l1.1.8a.2.2 0 0 1 0 .4 36 36 0 0 1-5.5 2.6.2.2 0 0 0-.1.3 45 45 0 0 0 3.6 5.9.2.2 0 0 0 .2.1 58.6 58.6 0 0 0 17.8-9 .2.2 0 0 0 .1-.2c1.5-15.3-2.5-28.1-10.6-39.8a.2.2 0 0 0-.1-.1zM23.7 36c-3.5 0-6.4-3.2-6.4-7.1 0-4 2.8-7.1 6.4-7.1 3.6 0 6.5 3.2 6.4 7.1 0 3.9-2.8 7.1-6.4 7.1zm23.6 0c-3.5 0-6.4-3.2-6.4-7.1 0-4 2.8-7.1 6.4-7.1 3.6 0 6.5 3.2 6.4 7.1 0 3.9-2.8 7.1-6.4 7.1z" fill="#fff"/></svg>
       Discord로 로그인
     </button>
   </div>
 </div>
 
-<!-- ── 메인 앱 (로그인 후) ── -->
 <div id="app" style="display:none">
   <header>
-    <div class="logo">
-      <div class="logo-icon">📋</div>
-      보고서 시스템
-    </div>
+    <div class="logo"><div class="logo-icon">📋</div>변동 보고서</div>
     <div class="header-right">
-      <div class="user-chip" id="user-chip">
-        <img class="avatar" id="user-avatar" src="" alt="">
+      <div class="user-chip">
+        <img class="avatar" id="user-avatar" src="" alt="" onerror="this.style.display='none'">
         <span id="user-name">-</span>
         <span class="badge" id="user-badge">-</span>
       </div>
@@ -356,196 +163,258 @@ hr { border:none; border-top:1px solid var(--border); margin:20px 0; }
   </header>
 
   <main>
-    <!-- 탭 -->
-    <div class="tabs" id="tabs">
-      <div class="tab active" onclick="showTab('submit')" data-tab="submit">📝 보고서 제출</div>
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('submit')" data-tab="submit">📝 제출</div>
       <div class="tab" onclick="showTab('my')" data-tab="my">📂 내 보고서</div>
-      <div class="tab admin-only" onclick="showTab('admin')" data-tab="admin" style="display:none">🛡️ 관리자</div>
+      <div class="tab cmd-only" onclick="showTab('review')" data-tab="review" style="display:none">🛡️ 검토</div>
       <div class="tab admin-only" onclick="showTab('settings')" data-tab="settings" style="display:none">⚙️ 설정</div>
     </div>
 
-    <!-- ── 탭: 보고서 제출 ── -->
+    <!-- ── 제출 탭 ── -->
     <div id="tab-submit">
+      <div class="type-grid">
+        <div class="type-card selected" id="type-rank" onclick="selectType('rank')">
+          <div class="type-icon">🎖️</div>
+          <div class="type-name">계급 변동</div>
+          <div class="type-desc">승급·강등 보고</div>
+        </div>
+        <div class="type-card" id="type-position" onclick="selectType('position')">
+          <div class="type-icon">🏛️</div>
+          <div class="type-name">보직 변동</div>
+          <div class="type-desc">임명·해임 보고</div>
+        </div>
+      </div>
+
       <div class="card">
-        <div class="card-header">
-          <div>
-            <div class="card-title">새 보고서 제출</div>
-            <div class="card-sub">아래 양식을 작성하여 보고서를 제출하세요</div>
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="required">보고서 제목</label>
-          <input type="text" id="report-title" placeholder="보고서 제목을 입력하세요">
-        </div>
-        <div id="dynamic-fields">
-          <!-- 동적 필드가 여기에 렌더링됨 -->
-          <div class="empty" style="padding:20px">
-            <div style="font-size:13px;color:var(--muted)">⚙️ 관리자가 보고서 양식을 아직 설정하지 않았습니다</div>
-          </div>
-        </div>
-        <button class="btn btn-primary" onclick="submitReport()" id="submit-btn">
-          📤 보고서 제출
-        </button>
-      </div>
-    </div>
-
-    <!-- ── 탭: 내 보고서 ── -->
-    <div id="tab-my" style="display:none">
-      <div class="card-header" style="margin-bottom:16px">
-        <div class="card-title">내 제출 내역</div>
-        <button class="btn btn-ghost btn-sm" onclick="loadMyReports()">🔄 새로고침</button>
-      </div>
-      <div id="my-reports-list">
-        <div class="empty"><div class="empty-icon">📭</div><div>제출한 보고서가 없습니다</div></div>
-      </div>
-    </div>
-
-    <!-- ── 탭: 관리자 ── -->
-    <div id="tab-admin" style="display:none">
-      <div class="stats-grid" id="admin-stats"></div>
-
-      <div class="card-header" style="margin-bottom:16px">
-        <div class="card-title">보고서 검토</div>
-        <div style="display:flex;gap:8px">
-          <select id="status-filter" onchange="loadAdminReports()" style="width:auto;padding:6px 12px;font-size:13px">
-            <option value="">전체</option>
-            <option value="pending">대기 중</option>
-            <option value="approved">승인됨</option>
-            <option value="rejected">반려됨</option>
-          </select>
-          <button class="btn btn-ghost btn-sm" onclick="loadAdminReports()">🔄</button>
-        </div>
-      </div>
-      <div id="admin-reports-list">
-        <div class="empty"><div class="empty-icon">📋</div><div>보고서 없음</div></div>
-      </div>
-    </div>
-
-    <!-- ── 탭: 설정 ── -->
-    <div id="tab-settings" style="display:none">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
-
-        <!-- 폼 필드 빌더 -->
-        <div class="card" style="grid-column:1/-1">
-          <div class="card-header">
-            <div>
-              <div class="card-title">📋 보고서 양식 설정</div>
-              <div class="card-sub">보고서에 들어갈 항목을 커스텀하세요</div>
+        <!-- 계급 변동 양식 -->
+        <div id="form-rank">
+          <div class="card-title">🎖️ 계급 변동 보고서</div>
+          <div class="card-sub" style="margin-bottom:16px">보직장 및 고위직 인가 필요</div>
+          <div class="form-group"><label class="required">작성자</label><input type="text" id="r-writer" placeholder="작성자 이름"></div>
+          <div class="form-group"><label class="required">대상자</label><input type="text" id="r-target" placeholder="대상자 이름"></div>
+          <div class="form-group"><label class="required">사유</label><textarea id="r-reason" placeholder="계급 변동 사유"></textarea></div>
+          <div class="form-group">
+            <label class="required">계급 변동</label>
+            <div class="arrow-row">
+              <div>
+                <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">변동 전</label>
+                <select id="r-before"><option value="">선택</option></select>
+              </div>
+              <div class="arrow-mid">→</div>
+              <div>
+                <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">변동 후</label>
+                <select id="r-after" onchange="onRankAfterChange()"><option value="">선택</option></select>
+              </div>
             </div>
-            <button class="btn btn-primary btn-sm" onclick="showAddFieldModal()">+ 항목 추가</button>
           </div>
-          <div id="fields-list">
-            <div class="empty" style="padding:20px">항목이 없습니다</div>
-          </div>
-        </div>
-
-        <!-- 메시지 설정 -->
-        <div class="card">
-          <div class="card-title" style="margin-bottom:16px">✅ 승인 DM 메시지</div>
           <div class="form-group">
-            <textarea id="dm-approve" rows="3" placeholder="승인 시 유저에게 보낼 메시지"></textarea>
+            <label class="required">소속 보직</label>
+            <select id="r-position" onchange="onPositionChange('r')"><option value="">보직 선택</option></select>
           </div>
-          <button class="btn btn-primary btn-sm" onclick="saveMessages()">저장</button>
-        </div>
-
-        <div class="card">
-          <div class="card-title" style="margin-bottom:16px">❌ 반려 DM 메시지</div>
           <div class="form-group">
-            <textarea id="dm-reject" rows="3" placeholder="반려 시 유저에게 보낼 메시지"></textarea>
+            <label>부여 역할 (변동 후 계급 기준 자동 설정)</label>
+            <input type="text" id="r-role-display" readonly placeholder="변동 후 계급 선택 시 자동 설정">
+            <input type="hidden" id="r-role-id">
+            <input type="hidden" id="r-role-name">
           </div>
-          <button class="btn btn-primary btn-sm" onclick="saveMessages()">저장</button>
         </div>
 
-        <!-- 역할 설정 -->
-        <div class="card" style="grid-column:1/-1">
-          <div class="card-title" style="margin-bottom:16px">🎭 기본 승인 역할 ID</div>
-          <div class="card-sub" style="margin-bottom:12px;color:var(--muted);font-size:13px">
-            승인 시 자동으로 부여할 Discord 역할 ID (개별 승인 시 override 가능)
+        <!-- 보직 변동 양식 -->
+        <div id="form-position" style="display:none">
+          <div class="card-title">🏛️ 보직 변동 보고서</div>
+          <div class="card-sub" style="margin-bottom:16px">보직장 인가 필요</div>
+          <div class="form-group"><label class="required">작성자</label><input type="text" id="p-writer" placeholder="작성자 이름"></div>
+          <div class="form-group"><label class="required">대상자</label><input type="text" id="p-target" placeholder="대상자 이름"></div>
+          <div class="form-group"><label class="required">사유</label><textarea id="p-reason" placeholder="보직 변동 사유"></textarea></div>
+          <div class="form-group">
+            <label class="required">보직 변동</label>
+            <div class="arrow-row">
+              <div>
+                <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">변동 전</label>
+                <select id="p-before"><option value="">선택</option></select>
+              </div>
+              <div class="arrow-mid">→</div>
+              <div>
+                <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">변동 후</label>
+                <select id="p-after" onchange="onPositionAfterChange()"><option value="">선택</option></select>
+              </div>
+            </div>
           </div>
-          <div style="display:flex;gap:10px">
-            <input type="text" id="default-role" placeholder="Discord Role ID" style="flex:1">
-            <button class="btn btn-primary" onclick="saveRoleSetting()">저장</button>
+          <div class="form-group">
+            <label class="required">소속 보직 (보고서가 전달될 보직장)</label>
+            <select id="p-position" onchange="onPositionChange('p')"><option value="">보직 선택</option></select>
           </div>
+          <div class="form-group">
+            <label>부여 역할 (변동 후 보직 기준 자동 설정)</label>
+            <input type="text" id="p-role-display" readonly placeholder="변동 후 보직 선택 시 자동 설정">
+            <input type="hidden" id="p-role-id">
+            <input type="hidden" id="p-role-name">
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-full" onclick="submitReport()" id="submit-btn">📤 보고서 제출</button>
+      </div>
+    </div>
+
+    <!-- ── 내 보고서 탭 ── -->
+    <div id="tab-my" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-size:14px;font-weight:700">내 제출 내역</div>
+        <button class="btn btn-ghost btn-sm" onclick="loadMyReports()">🔄</button>
+      </div>
+      <div id="my-list"><div class="empty"><div class="empty-icon">📭</div>보고서 없음</div></div>
+    </div>
+
+    <!-- ── 검토 탭 ── -->
+    <div id="tab-review" style="display:none">
+      <div id="commander-info"></div>
+      <div class="stats" id="review-stats"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap">
+        <div style="font-size:14px;font-weight:700">보고서 검토</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <select id="filter-status" onchange="loadReviewReports()" style="width:auto;padding:5px 10px;font-size:12px">
+            <option value="">전체</option>
+            <option value="pending">대기</option>
+            <option value="approved">인가</option>
+            <option value="rejected">기각</option>
+          </select>
+          <select id="filter-type" onchange="loadReviewReports()" style="width:auto;padding:5px 10px;font-size:12px">
+            <option value="">전체 유형</option>
+            <option value="rank">계급</option>
+            <option value="position">보직</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="loadReviewReports()">🔄</button>
+        </div>
+      </div>
+      <div id="review-list"><div class="empty"><div class="empty-icon">📋</div>보고서 없음</div></div>
+    </div>
+
+    <!-- ── 설정 탭 ── -->
+    <div id="tab-settings" style="display:none">
+
+      <!-- 보직장 관리 -->
+      <div class="card" style="border-color:rgba(124,58,237,.3)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div>
+            <div class="card-title">🛡️ 보직장 관리</div>
+            <div class="card-sub">Discord ID와 담당 보직을 1:1로 등록</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="showAddCommanderModal()">+ 등록</button>
+        </div>
+        <div id="commander-list"><div class="empty" style="padding:12px">등록된 보직장 없음</div></div>
+      </div>
+
+      <!-- 계급 목록 -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div><div class="card-title">🎖️ 계급 목록</div><div class="card-sub">계급명 + Discord 역할 ID</div></div>
+          <button class="btn btn-primary btn-sm" onclick="showAddListModal('rank')">+ 추가</button>
+        </div>
+        <div id="rank-list-settings"><div class="empty" style="padding:12px">없음</div></div>
+      </div>
+
+      <!-- 보직 목록 -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div><div class="card-title">🏛️ 보직 목록</div><div class="card-sub">보직명 + Discord 역할 ID</div></div>
+          <button class="btn btn-primary btn-sm" onclick="showAddListModal('position')">+ 추가</button>
+        </div>
+        <div id="position-list-settings"><div class="empty" style="padding:12px">없음</div></div>
+      </div>
+
+      <!-- DM 메시지 -->
+      <div class="card">
+        <div class="card-title" style="margin-bottom:14px">💬 DM 메시지</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="form-group"><label>계급변동 인가</label><textarea id="dm-ar" rows="2"></textarea></div>
+          <div class="form-group"><label>계급변동 기각</label><textarea id="dm-rr" rows="2"></textarea></div>
+          <div class="form-group"><label>보직변동 인가</label><textarea id="dm-ap" rows="2"></textarea></div>
+          <div class="form-group"><label>보직변동 기각</label><textarea id="dm-rp" rows="2"></textarea></div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="saveSettings()">저장</button>
+      </div>
+
+      <!-- 환경변수 안내 -->
+      <div class="card" style="border-color:rgba(201,168,76,.3)">
+        <div class="card-title" style="color:var(--gold);margin-bottom:8px">⚙️ 환경변수 설정</div>
+        <div style="font-size:12px;color:var(--muted);line-height:2">
+          <code style="background:#0d1525;padding:1px 6px;border-radius:3px">ADMIN_USER_IDS</code> — 관리자 Discord ID (쉼표 구분)<br>
+          보직장은 이 페이지에서 웹으로 관리
         </div>
       </div>
     </div>
   </main>
 </div>
 
-<!-- ── 보고서 상세 모달 ── -->
-<div id="report-modal" class="modal-backdrop" style="display:none" onclick="closeModal(event)">
+<!-- 보고서 상세 모달 -->
+<div id="report-modal" class="modal-backdrop" style="display:none" onclick="bgClose(event,'report-modal')">
   <div class="modal">
+    <div class="modal-handle"></div>
     <div class="modal-header">
       <div>
-        <div style="font-size:15px;font-weight:700" id="modal-title">보고서 상세</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px" id="modal-meta"></div>
+        <div style="font-size:14px;font-weight:700" id="modal-title">보고서 상세</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px" id="modal-meta"></div>
       </div>
-      <button class="close-btn" onclick="closeModal()">✕</button>
+      <button class="close-btn" onclick="closeModal('report-modal')">✕</button>
     </div>
     <div class="modal-body" id="modal-body"></div>
     <div class="modal-footer" id="modal-footer"></div>
   </div>
 </div>
 
-<!-- ── 항목 추가 모달 ── -->
-<div id="add-field-modal" class="modal-backdrop" style="display:none" onclick="closeAddFieldModal(event)">
-  <div class="modal" style="max-width:440px">
+<!-- 보직장 등록 모달 -->
+<div id="commander-modal" class="modal-backdrop" style="display:none" onclick="bgClose(event,'commander-modal')">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-handle"></div>
     <div class="modal-header">
-      <div style="font-size:15px;font-weight:700">항목 추가</div>
-      <button class="close-btn" onclick="closeAddFieldModal()">✕</button>
+      <div style="font-size:14px;font-weight:700">보직장 등록</div>
+      <button class="close-btn" onclick="closeModal('commander-modal')">✕</button>
     </div>
     <div class="modal-body">
-      <div class="form-group">
-        <label class="required">항목 이름</label>
-        <input type="text" id="field-label" placeholder="예: 업무 내용">
-      </div>
-      <div class="form-group">
-        <label class="required">입력 유형</label>
-        <select id="field-type" onchange="toggleFieldOptions()">
-          <option value="text">텍스트 (한 줄)</option>
-          <option value="textarea">텍스트 (여러 줄)</option>
-          <option value="select">선택지</option>
-          <option value="number">숫자</option>
-          <option value="date">날짜</option>
-        </select>
-      </div>
-      <div class="form-group" id="field-options-group" style="display:none">
-        <label>선택지 (쉼표로 구분)</label>
-        <input type="text" id="field-options" placeholder="예: 긴급, 일반, 참고">
-      </div>
-      <div class="form-group">
-        <label>
-          <input type="checkbox" id="field-required" checked style="width:auto;margin-right:6px">
-          필수 항목
-        </label>
-      </div>
+      <div class="form-group"><label class="required">Discord ID (숫자)</label><input type="text" id="cmd-discord-id" placeholder="예: 123456789012345678"></div>
+      <div class="form-group"><label class="required">유저명 (표시용)</label><input type="text" id="cmd-username" placeholder="예: 홍길동"></div>
+      <div class="form-group"><label class="required">담당 보직</label><select id="cmd-position"><option value="">선택</option></select></div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeAddFieldModal()">취소</button>
-      <button class="btn btn-primary" onclick="addField()">추가</button>
+      <button class="btn btn-ghost" onclick="closeModal('commander-modal')">취소</button>
+      <button class="btn btn-primary" onclick="addCommander()">등록</button>
+    </div>
+  </div>
+</div>
+
+<!-- 계급/보직 추가 모달 -->
+<div id="list-modal" class="modal-backdrop" style="display:none" onclick="bgClose(event,'list-modal')">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div style="font-size:14px;font-weight:700" id="list-modal-title">항목 추가</div>
+      <button class="close-btn" onclick="closeModal('list-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label class="required">이름</label><input type="text" id="list-name" placeholder="계급/보직명"></div>
+      <div class="form-group"><label>Discord 역할 ID</label><input type="text" id="list-role-id" placeholder="없으면 비워두세요"></div>
+      <div class="form-group"><label>순서</label><input type="text" id="list-order" value="0"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('list-modal')">취소</button>
+      <button class="btn btn-primary" onclick="confirmAddList()">추가</button>
     </div>
   </div>
 </div>
 
 <script>
-// ── Config ──────────────────────────────────────────────
 const API = "https://report-3pl1.onrender.com";
-let token = null;
-let me = null;
-let formFields = [];
-let allReports = [];
+let token = null, me = null;
+let ranks = [], positions = [];
+let currentType = 'rank';
+let addingListType = '';
 
-// ── 초기화 ──────────────────────────────────────────────
+// ── 초기화 ────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
-  const params = new URLSearchParams(location.search);
-  const t = params.get('token');
-  if (t) {
-    token = t;
-    localStorage.setItem('report_token', t);
-    history.replaceState({}, '', location.pathname);
-  } else {
-    token = localStorage.getItem('report_token');
-  }
+  const p = new URLSearchParams(location.search);
+  const t = p.get('token');
+  if (t) { token = t; localStorage.setItem('rs_token', t); history.replaceState({}, '', location.pathname); }
+  else token = localStorage.getItem('rs_token');
   if (token) await initApp();
 });
 
@@ -553,379 +422,422 @@ async function initApp() {
   try {
     me = await api('GET', '/auth/me');
     showApp();
-  } catch {
-    localStorage.removeItem('report_token');
-    token = null;
-  }
+  } catch { localStorage.removeItem('rs_token'); token = null; }
 }
 
 function showApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
-
-  // 유저 정보
+  const av = document.getElementById('user-avatar');
+  if (me.avatar && me.discord_id) av.src = 'https://cdn.discordapp.com/avatars/' + me.discord_id + '/' + me.avatar + '.png?size=64';
   document.getElementById('user-name').textContent = me.username;
-  const avatarEl = document.getElementById('user-avatar');
-  if (me.avatar && me.discord_id) {
-    avatarEl.src = `https://cdn.discordapp.com/avatars/${me.discord_id}/${me.avatar}.png?size=64`;
-  } else {
-    avatarEl.style.display = 'none';
-  }
   const badge = document.getElementById('user-badge');
-  badge.textContent = me.is_admin ? 'admin' : 'user';
-  badge.className = 'badge ' + (me.is_admin ? 'badge-admin' : 'badge-user');
-
-  // 관리자 탭 표시
-  if (me.is_admin) {
-    document.querySelectorAll('.admin-only').forEach(el => el.style.display = '');
-  }
-
-  loadFields();
+  if (me.is_admin) { badge.textContent = 'admin'; badge.className = 'badge badge-admin'; }
+  else if (me.is_commander) { badge.textContent = '보직장'; badge.className = 'badge badge-commander'; }
+  else { badge.textContent = 'user'; badge.className = 'badge badge-user'; }
+  if (me.is_admin || me.is_commander) document.querySelectorAll('.cmd-only').forEach(e => e.style.display = '');
+  if (me.is_admin) document.querySelectorAll('.admin-only').forEach(e => e.style.display = '');
+  loadRanks(); loadPositions();
   showTab('submit');
 }
 
-// ── API 헬퍼 ────────────────────────────────────────────
+// ── API ───────────────────────────────────────────────────
 async function api(method, path, body) {
-  const url = `${API}${path}${path.includes('?') ? '&' : '?'}token=${token || ''}`;
+  const sep = path.includes('?') ? '&' : '?';
+  const url = API + path + sep + 'token=' + (token || '');
   const res = await fetch(url, {
     method,
-    headers: body ? { 'Content-Type': 'application/json' } : {},
+    headers: body ? {'Content-Type':'application/json'} : {},
     body: body ? JSON.stringify(body) : undefined
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || '오류가 발생했습니다');
-  }
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || '오류'); }
   return res.json();
 }
 
-// ── 탭 ──────────────────────────────────────────────────
+// ── 탭 ───────────────────────────────────────────────────
 function showTab(name) {
-  ['submit','my','admin','settings'].forEach(t => {
+  ['submit','my','review','settings'].forEach(t => {
     document.getElementById('tab-' + t).style.display = t === name ? '' : 'none';
-    document.querySelector(`[data-tab="${t}"]`)?.classList.toggle('active', t === name);
+    document.querySelector('[data-tab="' + t + '"]')?.classList.toggle('active', t === name);
   });
   if (name === 'my') loadMyReports();
-  if (name === 'admin') { loadAdminReports(); loadAdminStats(); }
-  if (name === 'settings') { loadFields(); loadSettings(); }
+  if (name === 'review') { loadReviewReports(); loadReviewStats(); showCommanderInfo(); }
+  if (name === 'settings') { loadCommanderList(); loadRankListSettings(); loadPositionListSettings(); loadSettings(); }
 }
 
-// ── 폼 필드 ─────────────────────────────────────────────
-async function loadFields() {
-  formFields = await api('GET', '/fields');
-  renderDynamicFields();
-  renderFieldsList();
+// ── 타입 선택 ─────────────────────────────────────────────
+function selectType(type) {
+  currentType = type;
+  document.getElementById('type-rank').classList.toggle('selected', type === 'rank');
+  document.getElementById('type-position').classList.toggle('selected', type === 'position');
+  document.getElementById('form-rank').style.display = type === 'rank' ? '' : 'none';
+  document.getElementById('form-position').style.display = type === 'position' ? '' : 'none';
 }
 
-function renderDynamicFields() {
-  const container = document.getElementById('dynamic-fields');
-  if (!formFields.length) {
-    container.innerHTML = `<div class="empty" style="padding:20px"><div style="font-size:13px;color:var(--muted)">⚙️ 관리자가 보고서 양식을 아직 설정하지 않았습니다</div></div>`;
-    return;
-  }
-  container.innerHTML = formFields.map(f => `
-    <div class="form-group">
-      <label class="${f.required ? 'required' : ''}">${f.label}</label>
-      ${renderInput(f)}
-    </div>
-  `).join('');
+// ── 계급/보직 셀렉트 로드 ─────────────────────────────────
+async function loadRanks() {
+  ranks = await api('GET', '/ranks').catch(() => []);
+  const opts = '<option value="">선택</option>' + ranks.map(r =>
+    '<option value="' + r.name + '" data-rid="' + (r.role_id||'') + '">' + r.name + '</option>'
+  ).join('');
+  document.getElementById('r-before').innerHTML = opts;
+  document.getElementById('r-after').innerHTML = opts;
 }
 
-function renderInput(f) {
-  const id = `field-${f.id}`;
-  switch(f.type) {
-    case 'textarea':
-      return `<textarea id="${id}" ${f.required ? 'required' : ''}></textarea>`;
-    case 'select':
-      const opts = (f.options || '').split(',').map(o => `<option>${o.trim()}</option>`).join('');
-      return `<select id="${id}"><option value="">선택하세요</option>${opts}</select>`;
-    case 'number':
-      return `<input type="number" id="${id}" ${f.required ? 'required' : ''}>`;
-    case 'date':
-      return `<input type="date" id="${id}" ${f.required ? 'required' : ''}>`;
-    default:
-      return `<input type="text" id="${id}" ${f.required ? 'required' : ''}>`;
-  }
+async function loadPositions() {
+  positions = await api('GET', '/positions').catch(() => []);
+  const opts = '<option value="">선택</option>' + positions.map(p =>
+    '<option value="' + p.name + '" data-pid="' + p.id + '" data-rid="' + (p.role_id||'') + '">' + p.name + '</option>'
+  ).join('');
+  // 보직 변동 전/후
+  document.getElementById('p-before').innerHTML = opts;
+  document.getElementById('p-after').innerHTML = opts;
+  // 소속 보직 (계급/보직 양식 공통)
+  const posOpts = '<option value="">보직 선택</option>' + positions.map(p =>
+    '<option value="' + p.id + '" data-name="' + p.name + '">' + p.name + '</option>'
+  ).join('');
+  document.getElementById('r-position').innerHTML = posOpts;
+  document.getElementById('p-position').innerHTML = posOpts;
+  // 보직장 등록 모달
+  document.getElementById('cmd-position').innerHTML = posOpts;
 }
 
-function renderFieldsList() {
-  const el = document.getElementById('fields-list');
-  if (!formFields.length) {
-    el.innerHTML = `<div class="empty" style="padding:20px">항목이 없습니다. 위에서 추가하세요.</div>`;
-    return;
-  }
-  el.innerHTML = formFields.map(f => `
-    <div class="field-row">
-      <span class="field-label">${f.required ? '* ' : ''}${f.label}</span>
-      <span class="field-type">${f.type}</span>
-      ${f.options ? `<span style="font-size:11px;color:var(--muted)">[${f.options}]</span>` : ''}
-      <button class="btn btn-ghost btn-sm" onclick="deleteField(${f.id})" style="color:var(--red);border-color:rgba(239,68,68,.3)">🗑</button>
-    </div>
-  `).join('');
+function onRankAfterChange() {
+  const sel = document.getElementById('r-after');
+  const opt = sel.options[sel.selectedIndex];
+  const rid = opt.dataset.rid || '';
+  document.getElementById('r-role-id').value = rid;
+  document.getElementById('r-role-name').value = opt.value;
+  document.getElementById('r-role-display').value = rid ? opt.value + ' (' + rid + ')' : (opt.value ? opt.value + ' (역할 미설정)' : '');
 }
 
-// ── 보고서 제출 ─────────────────────────────────────────
+function onPositionAfterChange() {
+  const sel = document.getElementById('p-after');
+  const opt = sel.options[sel.selectedIndex];
+  const rid = opt.dataset.rid || '';
+  document.getElementById('p-role-id').value = rid;
+  document.getElementById('p-role-name').value = opt.value;
+  document.getElementById('p-role-display').value = rid ? opt.value + ' (' + rid + ')' : (opt.value ? opt.value + ' (역할 미설정)' : '');
+}
+
+function onPositionChange(prefix) {
+  // 소속 보직 선택 (r-position, p-position)
+  // 그냥 선택된 값만 저장, 별도 처리 불필요
+}
+
+function getSelectedPosition(prefix) {
+  const sel = document.getElementById(prefix + '-position');
+  const opt = sel.options[sel.selectedIndex];
+  return {
+    id: opt.value ? parseInt(opt.value) : null,
+    name: opt.dataset.name || ''
+  };
+}
+
+// ── 보고서 제출 ───────────────────────────────────────────
 async function submitReport() {
-  const title = document.getElementById('report-title').value.trim();
-  if (!title) return toast('제목을 입력하세요', 'error');
+  const isRank = currentType === 'rank';
+  const pre = isRank ? 'r' : 'p';
+  const writer  = document.getElementById(pre + '-writer').value.trim();
+  const target  = document.getElementById(pre + '-target').value.trim();
+  const reason  = document.getElementById(pre + '-reason').value.trim();
+  const before  = document.getElementById(pre + '-before').value;
+  const after   = document.getElementById(pre + '-after').value;
+  const roleId  = document.getElementById(pre + '-role-id').value;
+  const roleName= document.getElementById(pre + '-role-name').value;
+  const pos     = getSelectedPosition(pre);
 
-  const fields = {};
-  for (const f of formFields) {
-    const el = document.getElementById(`field-${f.id}`);
-    if (!el) continue;
-    const val = el.value.trim();
-    if (f.required && !val) return toast(`"${f.label}" 항목을 입력하세요`, 'error');
-    fields[f.label] = val;
-  }
+  if (!writer) return toast('작성자를 입력하세요', 'error');
+  if (!target) return toast('대상자를 입력하세요', 'error');
+  if (!reason) return toast('사유를 입력하세요', 'error');
+  if (!before) return toast('변동 전 ' + (isRank?'계급':'보직') + '을 선택하세요', 'error');
+  if (!after)  return toast('변동 후 ' + (isRank?'계급':'보직') + '을 선택하세요', 'error');
+  if (!pos.id) return toast('소속 보직을 선택하세요', 'error');
 
   const btn = document.getElementById('submit-btn');
   btn.disabled = true;
   try {
-    await api('POST', '/reports', { title, fields });
-    toast('보고서가 제출되었습니다 ✅', 'success');
-    document.getElementById('report-title').value = '';
-    formFields.forEach(f => {
-      const el = document.getElementById(`field-${f.id}`);
-      if (el) el.value = '';
+    await api('POST', '/reports', {
+      report_type: currentType, writer, target, reason,
+      before_value: before, after_value: after,
+      position_id: pos.id, position_name: pos.name,
+      after_role_id: roleId || null, after_role_name: roleName || null
     });
-  } catch(e) {
-    toast(e.message, 'error');
-  } finally {
-    btn.disabled = false;
-  }
+    toast('보고서가 제출되었습니다 ✅', 'success');
+    ['writer','target','reason'].forEach(f => { const el = document.getElementById(pre+'-'+f); if(el) el.value=''; });
+    document.getElementById(pre+'-before').value = '';
+    document.getElementById(pre+'-after').value = '';
+    document.getElementById(pre+'-position').value = '';
+    document.getElementById(pre+'-role-id').value = '';
+    document.getElementById(pre+'-role-name').value = '';
+    document.getElementById(pre+'-role-display').value = '';
+  } catch(e) { toast(e.message, 'error'); }
+  finally { btn.disabled = false; }
 }
 
-// ── 내 보고서 ────────────────────────────────────────────
+// ── 내 보고서 ─────────────────────────────────────────────
 async function loadMyReports() {
-  const list = document.getElementById('my-reports-list');
-  list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">불러오는 중...</div>';
-  try {
-    const reports = await api('GET', '/reports');
-    renderReportList(list, reports, false);
-  } catch(e) {
-    list.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div>${e.message}</div>`;
+  const el = document.getElementById('my-list');
+  el.innerHTML = '<div class="empty">불러오는 중...</div>';
+  try { renderList(el, await api('GET', '/reports'), false); }
+  catch(e) { el.innerHTML = '<div class="empty">' + e.message + '</div>'; }
+}
+
+// ── 검토 ─────────────────────────────────────────────────
+function showCommanderInfo() {
+  const el = document.getElementById('commander-info');
+  if (me.is_commander && !me.is_admin) {
+    el.innerHTML = '<div class="cmd-badge">🛡️ 담당 보직: ' + (me.commander_position_name || '미지정') + '</div>';
+  } else if (me.is_admin) {
+    el.innerHTML = '<div class="cmd-badge" style="background:rgba(201,168,76,.1);border-color:rgba(201,168,76,.3);color:var(--gold)">👑 관리자 — 전체 보고서 열람</div>';
+  } else {
+    el.innerHTML = '';
   }
 }
 
-// ── 관리자 보고서 ────────────────────────────────────────
-async function loadAdminReports() {
-  const list = document.getElementById('admin-reports-list');
-  const status = document.getElementById('status-filter').value;
-  list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">불러오는 중...</div>';
+async function loadReviewReports() {
+  const el = document.getElementById('review-list');
+  const status = document.getElementById('filter-status').value;
+  const type   = document.getElementById('filter-type').value;
+  el.innerHTML = '<div class="empty">불러오는 중...</div>';
   try {
-    const reports = await api('GET', `/reports${status ? `?status=${status}` : ''}`);
-    renderReportList(list, reports, true);
-  } catch(e) {
-    list.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div>${e.message}</div>`;
-  }
+    let path = '/reports?x=1';
+    if (status) path += '&status=' + status;
+    if (type)   path += '&report_type=' + type;
+    renderList(el, await api('GET', path), true);
+  } catch(e) { el.innerHTML = '<div class="empty">' + e.message + '</div>'; }
 }
 
-async function loadAdminStats() {
+async function loadReviewStats() {
   try {
-    const all = await api('GET', '/reports');
-    const counts = { total: all.length, pending: 0, approved: 0, rejected: 0 };
-    all.forEach(r => counts[r.status]++);
-    document.getElementById('admin-stats').innerHTML = `
-      <div class="stat-card"><div class="stat-num">${counts.total}</div><div class="stat-label">전체</div></div>
-      <div class="stat-card"><div class="stat-num" style="color:var(--pending)">${counts.pending}</div><div class="stat-label">대기 중</div></div>
-      <div class="stat-card"><div class="stat-num" style="color:var(--green)">${counts.approved}</div><div class="stat-label">승인됨</div></div>
-      <div class="stat-card"><div class="stat-num" style="color:var(--red)">${counts.rejected}</div><div class="stat-label">반려됨</div></div>
-    `;
+    const all = await api('GET', '/reports?x=1');
+    let p=0,a=0,r=0;
+    all.forEach(x => { if(x.status==='pending')p++; else if(x.status==='approved')a++; else r++; });
+    document.getElementById('review-stats').innerHTML =
+      '<div class="stat"><div class="stat-num" style="color:var(--orange)">'+p+'</div><div class="stat-label">대기</div></div>'+
+      '<div class="stat"><div class="stat-num" style="color:var(--green)">'+a+'</div><div class="stat-label">인가</div></div>'+
+      '<div class="stat"><div class="stat-num" style="color:var(--red)">'+r+'</div><div class="stat-label">기각</div></div>';
   } catch {}
 }
 
-function renderReportList(container, reports, isAdmin) {
-  if (!reports.length) {
-    container.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><div>보고서 없음</div></div>`;
-    return;
-  }
-  container.innerHTML = reports.map(r => `
-    <div class="report-item" onclick="openReport(${r.id}, ${isAdmin})">
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.title}</div>
-        <div class="report-meta">
-          ${isAdmin ? `<span>👤 ${r.username}</span>` : ''}
-          <span>📅 ${r.created_at.slice(0,16)}</span>
-          ${r.approved_by ? `<span>✍️ ${r.approved_by}</span>` : ''}
-        </div>
-      </div>
-      <span class="status status-${r.status}">${{pending:'대기',approved:'승인',rejected:'반려'}[r.status]}</span>
-    </div>
-  `).join('');
+function renderList(container, list, isReview) {
+  if (!list.length) { container.innerHTML = '<div class="empty"><div class="empty-icon">📭</div>보고서 없음</div>'; return; }
+  container.innerHTML = list.map(r => {
+    const tag = r.report_type==='rank'
+      ? '<span class="type-tag tag-rank">계급</span>'
+      : '<span class="type-tag tag-position">보직</span>';
+    const posText = r.position_name ? ' · ' + r.position_name : '';
+    return '<div class="report-item" onclick="openReport('+r.id+','+isReview+')">' +
+      '<div class="report-info">' +
+      '<div class="report-title">' + tag + ' ' + r.before_value + ' → ' + r.after_value + '</div>' +
+      '<div class="report-meta">' +
+      (isReview ? '<span>👤 '+r.username+'</span>' : '') +
+      '<span>✍️ '+r.writer+'</span><span>🎯 '+r.target+'</span>' +
+      '<span>🏛️ '+(r.position_name||'미지정')+'</span>' +
+      '<span>📅 '+r.created_at.slice(0,16)+'</span>' +
+      '</div></div>' +
+      '<span class="status status-'+r.status+'">'+{pending:'대기',approved:'인가',rejected:'기각'}[r.status]+'</span>' +
+      '</div>';
+  }).join('');
 }
 
-// ── 보고서 모달 ──────────────────────────────────────────
-async function openReport(id, isAdmin) {
+// ── 보고서 상세 ───────────────────────────────────────────
+async function openReport(id, isReview) {
   try {
-    const r = await api('GET', `/reports/${id}`);
-    document.getElementById('modal-title').textContent = r.title;
-    document.getElementById('modal-meta').textContent =
-      `${r.username} · ${r.created_at.slice(0,16)} · ${{pending:'대기 중',approved:'승인됨',rejected:'반려됨'}[r.status]}`;
+    const r = await api('GET', '/reports/' + id);
+    const tn = r.report_type==='rank' ? '계급 변동' : '보직 변동';
+    document.getElementById('modal-title').textContent = tn + ' 보고서';
+    document.getElementById('modal-meta').textContent = r.username + ' · ' + r.created_at.slice(0,16);
 
-    const fieldsHtml = Object.entries(r.fields).map(([k,v]) => `
-      <div style="margin-bottom:14px">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em">${k}</div>
-        <div style="font-size:14px;padding:10px 14px;background:#0d1525;border-radius:6px;border:1px solid var(--border)">${v || '—'}</div>
-      </div>
-    `).join('');
+    let body = '';
+    body += drow('상태', '<span class="status status-'+r.status+'">'+{pending:'대기 중',approved:'인가됨',rejected:'기각됨'}[r.status]+'</span>');
+    body += drow('소속 보직', r.position_name || '미지정');
+    body += drow('작성자', r.writer);
+    body += drow('대상자', r.target);
+    body += drow('사유', r.reason);
+    body += '<div class="detail-row"><div class="detail-label">변동</div><div class="arrow-display"><div class="detail-value">'+r.before_value+'</div><div class="arr">→</div><div class="detail-value">'+r.after_value+'</div></div></div>';
+    if (r.after_role_name) body += drow('부여 역할', r.after_role_name + (r.after_role_id ? ' ('+r.after_role_id+')' : ''));
+    if (r.approved_by) body += drow('처리자', r.approved_by + ' · ' + (r.approved_at||'').slice(0,16));
+    if (r.reject_reason) body += '<div class="detail-row"><div class="detail-label" style="color:var(--red)">기각 사유</div><div class="detail-value" style="border-color:rgba(239,68,68,.3)">'+r.reject_reason+'</div></div>';
 
-    const adminNote = r.admin_note ? `
-      <hr>
-      <div style="margin-top:14px">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">관리자 메모</div>
-        <div style="font-size:14px;padding:10px 14px;background:#0d1525;border-radius:6px;border:1px solid var(--border)">${r.admin_note}</div>
-      </div>
-    ` : '';
-
-    document.getElementById('modal-body').innerHTML = fieldsHtml + adminNote;
-
-    // 관리자 승인/반려 폼
-    const footer = document.getElementById('modal-footer');
-    if (isAdmin && r.status === 'pending') {
-      footer.innerHTML = `
-        <div style="width:100%;display:flex;flex-direction:column;gap:10px">
-          <div style="display:flex;gap:10px">
-            <div style="flex:1">
-              <input type="text" id="approve-note" placeholder="관리자 메모 (선택)">
-            </div>
-            <div>
-              <input type="text" id="approve-role" placeholder="역할 ID (선택)">
-            </div>
-          </div>
-          <div style="display:flex;gap:10px;justify-content:flex-end">
-            <button class="btn btn-ghost" onclick="closeModal()">닫기</button>
-            <button class="btn btn-red" onclick="rejectReport(${id})">❌ 반려</button>
-            <button class="btn btn-green" onclick="approveReport(${id})">✅ 승인</button>
-          </div>
-        </div>
-      `;
-    } else {
-      footer.innerHTML = `<button class="btn btn-ghost" onclick="closeModal()">닫기</button>`;
+    if (isReview && r.status === 'pending') {
+      body += '<hr><div class="form-group" style="margin-top:4px"><label>기각 사유 (기각 시 필수)</label><textarea id="reject-input" placeholder="기각 사유 입력"></textarea></div>';
     }
+    document.getElementById('modal-body').innerHTML = body;
 
+    const footer = document.getElementById('modal-footer');
+    if (isReview && r.status === 'pending') {
+      footer.innerHTML =
+        '<button class="btn btn-ghost btn-sm" onclick="closeModal(\'report-modal\')">닫기</button>' +
+        '<button class="btn btn-red btn-sm" onclick="rejectReport('+r.id+')">❌ 기각</button>' +
+        '<button class="btn btn-green btn-sm" onclick="approveReport('+r.id+')">✅ 인가</button>';
+    } else {
+      footer.innerHTML = '<button class="btn btn-ghost btn-full" onclick="closeModal(\'report-modal\')">닫기</button>';
+    }
     document.getElementById('report-modal').style.display = 'flex';
-  } catch(e) {
-    toast(e.message, 'error');
-  }
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function drow(label, value) {
+  return '<div class="detail-row"><div class="detail-label">'+label+'</div><div class="detail-value">'+value+'</div></div>';
 }
 
 async function approveReport(id) {
-  const note = document.getElementById('approve-note')?.value || '';
-  const role = document.getElementById('approve-role')?.value || '';
   try {
-    await api('POST', `/reports/${id}/approve`, { admin_note: note, role_id: role });
-    toast('승인 처리되었습니다 ✅', 'success');
-    closeModal();
-    loadAdminReports();
-    loadAdminStats();
+    await api('POST', '/reports/'+id+'/approve');
+    toast('인가 처리되었습니다 ✅', 'success');
+    closeModal('report-modal'); loadReviewReports(); loadReviewStats();
   } catch(e) { toast(e.message, 'error'); }
 }
 
 async function rejectReport(id) {
-  const note = document.getElementById('approve-note')?.value || '';
+  const reason = document.getElementById('reject-input')?.value?.trim() || '';
+  if (!reason) return toast('기각 사유를 입력하세요', 'error');
   try {
-    await api('POST', `/reports/${id}/reject`, { admin_note: note });
-    toast('반려 처리되었습니다', 'info');
-    closeModal();
-    loadAdminReports();
-    loadAdminStats();
+    await api('POST', '/reports/'+id+'/reject', { reject_reason: reason });
+    toast('기각 처리되었습니다', 'info');
+    closeModal('report-modal'); loadReviewReports(); loadReviewStats();
   } catch(e) { toast(e.message, 'error'); }
 }
 
-function closeModal(e) {
-  if (!e || e.target === document.getElementById('report-modal'))
-    document.getElementById('report-modal').style.display = 'none';
-}
-
-// ── 항목 추가 모달 ───────────────────────────────────────
-function showAddFieldModal() {
-  document.getElementById('field-label').value = '';
-  document.getElementById('field-type').value = 'text';
-  document.getElementById('field-options').value = '';
-  document.getElementById('field-required').checked = true;
-  document.getElementById('field-options-group').style.display = 'none';
-  document.getElementById('add-field-modal').style.display = 'flex';
-}
-
-function toggleFieldOptions() {
-  const type = document.getElementById('field-type').value;
-  document.getElementById('field-options-group').style.display = type === 'select' ? '' : 'none';
-}
-
-function closeAddFieldModal(e) {
-  if (!e || e.target === document.getElementById('add-field-modal'))
-    document.getElementById('add-field-modal').style.display = 'none';
-}
-
-async function addField() {
-  const label = document.getElementById('field-label').value.trim();
-  const type = document.getElementById('field-type').value;
-  const options = document.getElementById('field-options').value.trim();
-  const required = document.getElementById('field-required').checked;
-
-  if (!label) return toast('항목 이름을 입력하세요', 'error');
-  if (type === 'select' && !options) return toast('선택지를 입력하세요', 'error');
-
+// ── 설정: 보직장 ──────────────────────────────────────────
+async function loadCommanderList() {
+  const el = document.getElementById('commander-list');
   try {
-    await api('POST', '/fields', { label, type, required, options: options || null, order_num: formFields.length });
-    toast('항목이 추가되었습니다', 'success');
-    closeAddFieldModal();
-    loadFields();
+    const list = await api('GET', '/commanders');
+    if (!list.length) { el.innerHTML = '<div class="empty" style="padding:12px">등록된 보직장 없음</div>'; return; }
+    el.innerHTML = list.map(c =>
+      '<div class="list-item">' +
+      '<div><div class="list-item-name">'+c.username+'</div>' +
+      '<div class="list-item-sub">'+c.discord_id+' · 담당: '+(c.position_name||'미지정')+'</div></div>' +
+      '<button class="btn btn-ghost btn-sm" onclick="deleteCommander(\''+c.discord_id+'\')" style="color:var(--red);border-color:rgba(239,68,68,.3);flex-shrink:0">해제</button>' +
+      '</div>'
+    ).join('');
+  } catch(e) { el.innerHTML = '<div class="empty" style="padding:12px">'+e.message+'</div>'; }
+}
+
+function showAddCommanderModal() {
+  document.getElementById('cmd-discord-id').value = '';
+  document.getElementById('cmd-username').value = '';
+  document.getElementById('cmd-position').value = '';
+  document.getElementById('commander-modal').style.display = 'flex';
+}
+
+async function addCommander() {
+  const discordId  = document.getElementById('cmd-discord-id').value.trim();
+  const username   = document.getElementById('cmd-username').value.trim();
+  const positionId = document.getElementById('cmd-position').value;
+  if (!discordId) return toast('Discord ID를 입력하세요', 'error');
+  if (!username)  return toast('유저명을 입력하세요', 'error');
+  if (!positionId) return toast('담당 보직을 선택하세요', 'error');
+  try {
+    await api('POST', '/commanders', { discord_id: discordId, username, position_id: parseInt(positionId) });
+    toast('보직장이 등록되었습니다 ✅', 'success');
+    closeModal('commander-modal');
+    loadCommanderList();
   } catch(e) { toast(e.message, 'error'); }
 }
 
-async function deleteField(id) {
-  if (!confirm('이 항목을 삭제하시겠습니까?')) return;
+async function deleteCommander(discordId) {
+  if (!confirm('보직장 권한을 해제하시겠습니까?')) return;
   try {
-    await api('DELETE', `/fields/${id}`);
-    toast('항목이 삭제되었습니다', 'info');
-    loadFields();
+    await api('DELETE', '/commanders/' + discordId);
+    toast('해제되었습니다', 'info');
+    loadCommanderList();
   } catch(e) { toast(e.message, 'error'); }
 }
 
-// ── 설정 ─────────────────────────────────────────────────
+// ── 설정: 계급/보직 목록 ──────────────────────────────────
+async function loadRankListSettings() {
+  const el = document.getElementById('rank-list-settings');
+  const list = await api('GET', '/ranks').catch(() => []);
+  ranks = list;
+  el.innerHTML = list.length ? list.map(r =>
+    '<div class="list-item"><div><div class="list-item-name">'+r.name+'</div>'+(r.role_id?'<div class="list-item-sub">'+r.role_id+'</div>':'')+'</div>' +
+    '<button class="btn btn-ghost btn-sm" onclick="deleteRank('+r.id+')" style="color:var(--red);border-color:rgba(239,68,68,.3)">삭제</button></div>'
+  ).join('') : '<div class="empty" style="padding:12px">없음</div>';
+  loadRanks();
+}
+
+async function loadPositionListSettings() {
+  const el = document.getElementById('position-list-settings');
+  const list = await api('GET', '/positions').catch(() => []);
+  positions = list;
+  el.innerHTML = list.length ? list.map(p =>
+    '<div class="list-item"><div><div class="list-item-name">'+p.name+'</div>'+(p.role_id?'<div class="list-item-sub">'+p.role_id+'</div>':'')+'</div>' +
+    '<button class="btn btn-ghost btn-sm" onclick="deletePosition('+p.id+')" style="color:var(--red);border-color:rgba(239,68,68,.3)">삭제</button></div>'
+  ).join('') : '<div class="empty" style="padding:12px">없음</div>';
+  loadPositions();
+}
+
+function showAddListModal(type) {
+  addingListType = type;
+  document.getElementById('list-modal-title').textContent = type === 'rank' ? '계급 추가' : '보직 추가';
+  document.getElementById('list-name').value = '';
+  document.getElementById('list-role-id').value = '';
+  document.getElementById('list-order').value = '0';
+  document.getElementById('list-modal').style.display = 'flex';
+}
+
+async function confirmAddList() {
+  const name = document.getElementById('list-name').value.trim();
+  const roleId = document.getElementById('list-role-id').value.trim();
+  const order = parseInt(document.getElementById('list-order').value) || 0;
+  if (!name) return toast('이름을 입력하세요', 'error');
+  try {
+    await api('POST', addingListType === 'rank' ? '/ranks' : '/positions', { name, role_id: roleId || null, order_num: order });
+    toast('추가되었습니다 ✅', 'success');
+    closeModal('list-modal');
+    if (addingListType === 'rank') loadRankListSettings(); else loadPositionListSettings();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function deleteRank(id) {
+  if (!confirm('삭제?')) return;
+  await api('DELETE', '/ranks/' + id).catch(e => toast(e.message,'error'));
+  loadRankListSettings();
+}
+
+async function deletePosition(id) {
+  if (!confirm('삭제?')) return;
+  await api('DELETE', '/positions/' + id).catch(e => toast(e.message,'error'));
+  loadPositionListSettings();
+}
+
+// ── 설정: DM ─────────────────────────────────────────────
 async function loadSettings() {
   try {
     const s = await api('GET', '/settings');
-    document.getElementById('dm-approve').value = s.dm_approve_msg || '';
-    document.getElementById('dm-reject').value = s.dm_reject_msg || '';
-    document.getElementById('default-role').value = s.role_on_approve || '';
+    document.getElementById('dm-ar').value = s.dm_approve_rank || '';
+    document.getElementById('dm-rr').value = s.dm_reject_rank || '';
+    document.getElementById('dm-ap').value = s.dm_approve_position || '';
+    document.getElementById('dm-rp').value = s.dm_reject_position || '';
   } catch {}
 }
 
-async function saveMessages() {
+async function saveSettings() {
   try {
     await api('PUT', '/settings', {
-      dm_approve_msg: document.getElementById('dm-approve').value,
-      dm_reject_msg: document.getElementById('dm-reject').value,
+      dm_approve_rank: document.getElementById('dm-ar').value,
+      dm_reject_rank:  document.getElementById('dm-rr').value,
+      dm_approve_position: document.getElementById('dm-ap').value,
+      dm_reject_position:  document.getElementById('dm-rp').value,
     });
-    toast('메시지가 저장되었습니다 ✅', 'success');
+    toast('저장되었습니다 ✅', 'success');
   } catch(e) { toast(e.message, 'error'); }
 }
 
-async function saveRoleSetting() {
-  try {
-    await api('PUT', '/settings', { role_on_approve: document.getElementById('default-role').value });
-    toast('역할 설정이 저장되었습니다 ✅', 'success');
-  } catch(e) { toast(e.message, 'error'); }
-}
-
-// ── 로그인/로그아웃 ──────────────────────────────────────
-function loginWithDiscord() {
-  location.href = `${API}/auth/login`;
-}
-
+// ── 공통 ─────────────────────────────────────────────────
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+function bgClose(e, id) { if (e.target === document.getElementById(id)) closeModal(id); }
+function loginWithDiscord() { location.href = API + '/auth/login'; }
 async function logout() {
   try { await api('POST', '/auth/logout'); } catch {}
-  localStorage.removeItem('report_token');
-  location.reload();
+  localStorage.removeItem('rs_token'); location.reload();
 }
-
-// ── 토스트 ───────────────────────────────────────────────
-function toast(msg, type = 'info') {
+function toast(msg, type='info') {
   const el = document.createElement('div');
-  el.className = `toast ${type}`;
-  el.textContent = msg;
+  el.className = 'toast ' + type; el.textContent = msg;
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 3000);
 }
