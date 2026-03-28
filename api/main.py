@@ -136,9 +136,9 @@ async def discord_callback(code: str):
             "code": code,
             "redirect_uri": DISCORD_REDIRECT_URI,
         })
-            print("[DEBUG] status: " + str(token_res.status_code))
-        print("[DEBUG] body: " + token_res.text[:300])
-        print("[DEBUG] redirect: " + DISCORD_REDIRECT_URI))
+        print(f"[DEBUG] Discord token status: {token_res.status_code}")
+        print(f"[DEBUG] Discord token body: {token_res.text[:300]}")
+        print(f"[DEBUG] CLIENT_ID={DISCORD_CLIENT_ID[:6]}... REDIRECT={DISCORD_REDIRECT_URI}")
 
         if not token_res.text.strip():
             raise HTTPException(status_code=500, detail="Discord 빈 응답. Client Secret 확인하세요.")
